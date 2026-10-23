@@ -7,7 +7,7 @@
 ## 1. Cible
 | Élément | Service | Offre | URL |
 |---|---|---|---|
-| Code source | GitHub (public) | Gratuit | https://github.com/Jevainbkg/Carnet-Gestion-de-notes-tudiants |
+| Code source | GitHub (public) | Gratuit | https://github.com/Jevainbkg/Carnet_application_de_gestion_de_notes_pour_eleves_ou_etudiants |
 | Base + authentification | Supabase | Free | [À COMPLÉTER] |
 | Site | Vercel | Hobby (personnel, non commercial) | [À COMPLÉTER] |
 
