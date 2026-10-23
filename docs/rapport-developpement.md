@@ -1,4 +1,4 @@
-# Rapport de développement — Carnet (projet 07)
+# Rapport de développement — Carnet
 
 **Projet** : gestion-notes-etudiants · **Date** : 23/10/2026 · **Version** : 1.1.0
 **Source de vérité** : [cahier des charges](cahier-des-charges.md).
