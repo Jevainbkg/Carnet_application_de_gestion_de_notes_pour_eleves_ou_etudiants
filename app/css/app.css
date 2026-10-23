@@ -49,6 +49,11 @@ main.container { flex: 1; padding-block: var(--space-5) var(--space-7); }
 .nav a[aria-current="page"] { color: var(--color-primary); background: var(--color-surface-2); font-weight: 600; }
 .account { margin-left: auto; display: flex; align-items: center; gap: var(--space-2); min-width: 0; }
 .account__email { font-size: var(--fs-sm); color: var(--color-text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 12rem; }
+.theme-toggle { margin-left: auto; min-width: var(--touch); min-height: var(--touch); padding: 0; border: 1px solid var(--color-border); border-radius: var(--radius-sm); background: var(--color-surface); color: var(--color-text); font-size: var(--fs-md); cursor: pointer; transition: border-color var(--transition); }
+.theme-toggle:hover { border-color: var(--color-primary); }
+.theme-toggle:focus-visible { outline: 3px solid var(--color-focus); outline-offset: 2px; }
+.theme-toggle + .account { margin-left: 0; }
+@media print { .theme-toggle { display: none; } }
 [hidden] { display: none !important; }
 
 @media (min-width: 768px) {

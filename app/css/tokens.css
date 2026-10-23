@@ -77,3 +77,25 @@
     --shadow-md: 0 8px 24px rgb(0 0 0 / 0.4);
   }
 }
+
+/* Choix explicite de l'utilisateur (bouton jour/nuit). */
+:root[data-theme="dark"] {
+  --color-bg: #12151d;
+  --color-surface: #1a1e29;
+  --color-surface-2: #222736;
+  --color-text: #eceef4;
+  --color-text-muted: #a5acbd;
+  --color-primary: #93b4ff;
+  --color-primary-hover: #b5ccff;
+  --color-on-primary: #0d1530;
+  --color-border: #2f3547;
+  --color-rule: #283252;
+  --color-focus: #fbbf24;
+  --color-pass: #86efac;
+  --color-pass-bg: #14301f;
+  --color-fail: #fca5a5;
+  --color-fail-bg: #3a1717;
+  --color-danger: #f87171;
+  --color-danger-hover: #fca5a5;
+  --shadow-md: 0 8px 24px rgb(0 0 0 / 0.4);
+}
