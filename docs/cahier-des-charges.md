@@ -1,6 +1,11 @@
 # Cahier des charges — Projet 07 « Carnet » : gestion des notes
 
-**Version 1.0 — 23/10/2026** · cahier des charges propre au projet Carnet
+**Version 1.1 — 23/10/2026** · cahier des charges propre au projet Carnet
+
+| Version | Changement |
+|---|---|
+| 1.0 | Application enseignant : apprenants, matières, notes, moyennes, isolation entre enseignants. |
+| 1.1 | Ajout de l'**espace élève / étudiant** : consultation de ses propres notes, en lecture seule (section 3 bis). |
 
 | Niveau | 7 / Premières données persistantes | Durée indicative | 1 à 2 semaines |
 |---|---|---|---|
@@ -25,11 +30,19 @@ Permettre à un enseignant ou à un formateur d'enregistrer ses apprenants, ses 
 - Afficher les erreurs de validation et les états de chargement.
 - Vocabulaire de l'interface adaptable au public (« élève » / « étudiant ») en un seul réglage.
 
+## 3 bis. Espace élève / étudiant (v1.1)
+- Chaque fiche reçoit un **code d'accès** unique (format `XXXX-XXXX-XXXX`), affiché à l'enseignant sur la fiche.
+- L'élève crée un compte (« Je suis élève ou étudiant »), saisit le code : son compte est rattaché à sa fiche. Un code ne sert qu'une fois.
+- L'élève voit **uniquement** sa fiche, ses notes, sa moyenne et les matières de son enseignant ; il peut imprimer son relevé.
+- L'élève ne peut **rien** créer, modifier ni supprimer (garanti par la base, pas seulement par l'interface).
+- L'enseignant voit si l'accès est « rattaché » ou « en attente » et peut **révoquer** l'accès (nouveau code, l'ancien compte ne voit plus rien).
+- Un compte enseignant qui possède des données ne peut pas se rattacher à une fiche. Un élève peut saisir les codes de plusieurs enseignants.
+
 ## 4. Pages / écrans attendus
-Connexion ; Liste des apprenants ; Fiche apprenant (relevé) ; Matières ; Saisie des notes.
+Connexion (avec choix enseignant / élève) ; Liste des apprenants ; Fiche apprenant (relevé + code d'accès) ; Matières ; Saisie des notes ; **Mes notes** (élève) ; **Saisir un code** (élève).
 
 ## 5. Données et structure
-Tables : `students(id, owner_id, name, student_code)`, `subjects(id, owner_id, name, coefficient)`, `grades(id, student_id, subject_id, value)`. Relations et contrainte d'unicité apprenant/matière. Les noms techniques restent en anglais quel que soit le public.
+Tables : `students(id, owner_id, name, student_code, user_id, access_code)`, `subjects(id, owner_id, name, coefficient)`, `grades(id, student_id, subject_id, value)`. Relations et contrainte d'unicité apprenant/matière. Les noms techniques restent en anglais quel que soit le public.
 
 ## 6. Règles métier et contraintes
 - Moyenne = somme(note × coefficient) / somme(coefficients des matières notées).
@@ -47,6 +60,8 @@ Tables : `students(id, owner_id, name, student_code)`, `subjects(id, owner_id, n
 ## 8. Recette : tests d'acceptation
 - Notes 10 (coef. 1) et 16 (coef. 2) donnent une moyenne de 14.
 - Notes < 0 ou > 20 refusées.
+- Un élève rattaché à la fiche ci-dessus voit la moyenne 14 ; il ne voit pas les autres élèves et ne peut modifier aucune note.
+- Après révocation par l'enseignant, l'élève ne voit plus rien et l'ancien code est refusé.
 - L'utilisateur B ne voit ni ne modifie les dossiers de A.
 - En passant le vocabulaire à « élèves », tous les libellés de l'interface changent sans modification du code ni de la base.
 

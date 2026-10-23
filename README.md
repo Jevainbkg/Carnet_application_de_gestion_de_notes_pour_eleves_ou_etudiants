@@ -19,6 +19,7 @@ Projet 07 du parcours développeur junior. Un enseignant ou un formateur (collè
 | Compte enseignant, accès restreint | **Connexion** + politiques RLS |
 | Erreurs de validation, états de chargement | Tous les écrans |
 | Bonus : relevé imprimable en PDF | Bouton « Imprimer / PDF » de la fiche |
+| **v1.1 : espace élève / étudiant** (lecture seule) | Code d'accès sur la fiche → écran **Mes notes** |
 
 ### Règles de calcul
 
@@ -32,6 +33,10 @@ Projet 07 du parcours développeur junior. Un enseignant ou un formateur (collè
 | Liste des étudiants | Relevé de notes | Mobile (thème sombre) |
 |---|---|---|
 | ![Liste](docs/captures/01-etudiants.png) | ![Relevé](docs/captures/02-releve.png) | ![Mobile](docs/captures/03-mobile-sombre.png) |
+
+| Espace élève (v1.1) |
+|---|
+| ![Mes notes](docs/captures/04-espace-eleve.png) |
 
 ## Adapter le vocabulaire
 
@@ -71,11 +76,13 @@ Importez le dépôt GitHub dans Vercel. Aucun build n'est nécessaire : `vercel.
 3. **Étudiants** : ajouter les étudiants (nom + code unique).
 4. **Saisie des notes** : choisir une matière, saisir la note de chaque étudiant (virgule ou point acceptés), puis « Enregistrer ». Ressaisir une note la remplace ; « Effacer » la retire.
 5. Cliquer sur un étudiant pour voir son **relevé** et sa moyenne, et l'imprimer.
+6. **Donner l'accès à l'élève** : sur la fiche, copier le **code d'accès** et le transmettre. L'élève crée un compte en choisissant « Élève ou étudiant », saisit le code et consulte ses notes (lecture seule). « Révoquer » coupe l'accès et génère un nouveau code.
 
 ## Données
 
 ```
-students (id, owner_id → auth.users, name, student_code)   unique (owner_id, student_code)
+students (id, owner_id → auth.users, name, student_code,   unique (owner_id, student_code)
+          user_id → auth.users (compte élève), access_code)   access_code unique
 subjects (id, owner_id → auth.users, name, coefficient)    coefficient entier 1..100, unique (owner_id, name)
 grades   (id, student_id → students, subject_id → subjects, value)
          value 0..20 (2 décimales), unique (student_id, subject_id), suppression en cascade
@@ -83,13 +90,15 @@ grades   (id, student_id → students, subject_id → subjects, value)
 
 **Sécurité (RLS)** : sur `students` et `subjects`, un enseignant n'accède qu'aux lignes dont `owner_id` est son identifiant. Sur `grades`, une note n'est visible ou modifiable que si l'étudiant **et** la matière lui appartiennent ; il est donc impossible de noter l'étudiant d'un autre enseignant. `owner_id` est rempli automatiquement et ne peut pas être modifié. Le rôle anonyme n'a aucun droit.
 
+**Espace élève (v1.1)** : un compte rattaché à une fiche peut **lire** cette fiche, ses notes et les matières de son enseignant, et rien d'autre ; il ne peut rien écrire. `user_id` et `access_code` ne s'écrivent que par les fonctions `claim_student(code)` (rattachement) et `reset_student_access(fiche)` (révocation, réservée au propriétaire). Le choix « enseignant / élève » à l'inscription ne sert qu'à l'affichage : la sécurité est entièrement dans la base.
+
 ## Tests
 
 | Commande | Ce qui est vérifié | Résultat |
 |---|---|---|
-| `npm test` | Calcul de la moyenne (recette 10 coef 1 + 16 coef 2 = 14), validation des notes et coefficients, recherche, tri, messages d'erreur | 10/10 PASS |
-| `npm run test:db` | Sur un Postgres 16 local avec émulation de `auth.uid()` : contraintes, unicité, isolation entre deux enseignants A et B, accès anonyme refusé, cascade | 11/11 PASS |
-| `npm run test:ui` | Parcours complet dans Chromium (faux Supabase en mémoire) : connexion, CRUD, refus de 21 et −1, relevé = 14,00, tri, isolation, mobile 375 px en thème sombre sans débordement | 14/14 PASS |
+| `npm test` | Calcul de la moyenne (recette 10 coef 1 + 16 coef 2 = 14), validation des notes, coefficients et codes d'accès, recherche, tri, messages d'erreur | 11/11 PASS |
+| `npm run test:db` | Sur un Postgres 16 local avec émulation de `auth.uid()` : contraintes, unicité, isolation entre deux enseignants A et B, accès anonyme refusé, cascade ; espace élève (rattachement, lecture seule, code unique, révocation) | 24/24 PASS |
+| `npm run test:ui` | Parcours complet dans Chromium (faux Supabase en mémoire) : connexion, CRUD, refus de 21 et −1, relevé = 14,00, tri, isolation, espace élève, révocation, mobile 375 px en thème sombre sans débordement | 20/20 PASS |
 
 `test:db` nécessite `psql` et une base de test vide (variables `PGHOST`, `PGDATABASE`…). **Ne pas l'exécuter sur la base Supabase** : le fichier `tests/db/supabase-shim.sql` crée des rôles et un schéma `auth` qui existent déjà sur Supabase. `test:ui` nécessite `npm install` puis `npx playwright install chromium`.
 
@@ -124,4 +133,4 @@ docs/                captures et prompt d'exécution
 - [Cahier des charges](docs/cahier-des-charges.md)
 - [Rapport de développement](docs/rapport-developpement.md)
 - [Rapport de déploiement](docs/rapport-deploiement.md) · [procédure pas à pas](docs/deploiement.md)
-- [Prompt d'exécution](docs/prompt-execution.md)
+- [Prompt d'exécution](docs/prompt-execution.md) · [v1.1 espace élève](docs/prompt-execution-v1.1.md)
