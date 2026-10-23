@@ -25,6 +25,12 @@ export function formatScore(n) {
   return n.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
+/** Note sur 20 exprimée en pourcentage, ex. 18 → « 90 % ». */
+export function formatPercent(n) {
+  if (n == null) return "—";
+  return (n * 5).toLocaleString("fr-FR", { maximumFractionDigits: 1 }) + "\u00a0%";
+}
+
 /**
  * Valide une note saisie (texte du formulaire). Accepte la virgule décimale.
  * @returns {{ok:true, value:number} | {ok:false, error:string}}

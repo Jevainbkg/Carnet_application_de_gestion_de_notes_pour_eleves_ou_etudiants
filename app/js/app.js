@@ -1,7 +1,7 @@
 // Interface : routeur par hash et écrans. Aucune règle métier ici (voir calc.js).
 import * as api from "./api.js";
 import {
-  weightedAverage, formatScore, parseGrade, parseCoefficient, parseText,
+  weightedAverage, formatScore, formatPercent, parseGrade, parseCoefficient, parseText,
   searchStudents, sortStudents, errorMessage, parseAccessCode,
 } from "./calc.js";
 import { L } from "./labels.js";
@@ -396,17 +396,17 @@ function reportHtml(student, subjects, grades, { headingLevel = 1, actions = "",
         ? `<p class="state state--empty">Aucune matière pour l'instant.</p>`
         : `<div class="table-wrap"><table class="table">
             <caption class="sr-only">Relevé de notes de ${esc(student.name)}</caption>
-            <thead><tr><th scope="col">Matière</th><th scope="col" class="num">Coef.</th><th scope="col" class="num">Note /20</th><th scope="col" class="num">Points</th></tr></thead>
+            <thead><tr><th scope="col">Matière</th><th scope="col" class="num">Coef.</th><th scope="col" class="num">Note /20</th><th scope="col" class="num">Pourcentage</th></tr></thead>
             <tbody>
               ${lines.map((l) => `
                 <tr>
                   <th scope="row">${esc(l.name)}</th>
                   <td data-label="Coef." class="num">${l.coefficient}</td>
                   <td data-label="Note /20" class="num">${l.value == null ? `<span class="tag">non notée</span>` : formatScore(l.value)}</td>
-                  <td data-label="Points" class="num">${l.value == null ? "—" : formatScore(l.value * l.coefficient)}</td>
+                  <td data-label="Pourcentage" class="num">${formatPercent(l.value)}</td>
                 </tr>`).join("")}
             </tbody>
-            <tfoot><tr><th scope="row">Total (matières notées)</th><td class="num">${totalCoef}</td><td></td><td class="num">${formatScore(graded.reduce((s, l) => s + l.value * l.coefficient, 0))}</td></tr></tfoot>
+            <tfoot><tr><th scope="row">Total (matières notées)</th><td class="num">${totalCoef}</td><td></td><td class="num">${formatPercent(average)}</td></tr></tfoot>
           </table></div>
           <p class="muted small">Moyenne = somme(note × coefficient) ÷ somme des coefficients des matières notées. Les matières non notées ne comptent pas comme 0.</p>`}
       ${extra}

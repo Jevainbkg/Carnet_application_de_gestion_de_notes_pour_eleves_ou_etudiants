@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   weightedAverage, parseGrade, parseCoefficient, parseText,
-  searchStudents, sortStudents, errorMessage, formatScore,
+  searchStudents, sortStudents, errorMessage, formatScore, formatPercent,
 } from "../app/js/calc.js";
 
 test("recette : 10 (coef 1) et 16 (coef 2) donnent 14", () => {
@@ -72,4 +72,11 @@ test("code d'accès : normalisation et validation", () => {
   assert.deepEqual(parseAccessCode(" a1b2 c3d4-e5f6 "), { ok: true, value: "A1B2-C3D4-E5F6" });
   assert.deepEqual(parseAccessCode("A1B2C3D4E5F6"), { ok: true, value: "A1B2-C3D4-E5F6" });
   for (const bad of ["", "A1B2-C3D4", "ZZZZ-ZZZZ-ZZZZ", "A1B2-C3D4-E5F6-0"]) assert.equal(parseAccessCode(bad).ok, false, bad);
+});
+
+test("formatPercent convertit une note sur 20 en pourcentage", () => {
+  assert.equal(formatPercent(18), "90 %");
+  assert.equal(formatPercent(15.2), "76 %");
+  assert.equal(formatPercent(12.5), "62,5 %");
+  assert.equal(formatPercent(null), "—");
 });
