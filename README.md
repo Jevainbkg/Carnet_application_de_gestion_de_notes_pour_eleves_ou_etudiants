@@ -114,3 +114,10 @@ supabase/schema.sql  tables, contraintes, RLS
 tests/               tests unitaires, base et interface
 docs/                captures et prompt d'exécution
 ```
+
+## Documentation
+
+- [Cahier des charges — projet 07](docs/cahier-des-charges/projet-07-gestion-notes.pdf) · [document complet](docs/cahier-des-charges/cahiers-des-charges-10-projets.pdf)
+- [Rapport de développement](docs/rapport-developpement.md)
+- [Rapport de déploiement](docs/rapport-deploiement.md) · [procédure pas à pas](docs/deploiement.md)
+- [Prompt d'exécution](docs/prompt-execution.md)
