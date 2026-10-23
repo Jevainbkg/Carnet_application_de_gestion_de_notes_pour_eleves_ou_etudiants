@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Carnet de notes — gestion des notes des étudiants</title>
+  <meta name="description" content="Application de démonstration : étudiants, matières, notes et moyennes pondérées, avec comptes enseignants isolés.">
+  <meta name="robots" content="noindex">
+  <meta name="color-scheme" content="light dark">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="css/tokens.css">
+  <link rel="stylesheet" href="css/app.css">
+  <script type="module" src="js/app.js"></script>
+</head>
+<body>
+  <a class="skip-link" href="#view">Aller au contenu</a>
+
+  <header class="topbar">
+    <div class="topbar__inner">
+      <a class="brand" href="#/etudiants" aria-label="Carnet de notes, accueil">
+        <span class="brand__mark" aria-hidden="true">20</span>
+        <span class="brand__name">Carnet de notes</span>
+      </a>
+      <nav class="nav" id="nav" aria-label="Navigation principale" hidden>
+        <a href="#/etudiants" data-route="etudiants">Étudiants</a>
+        <a href="#/matieres" data-route="matieres">Matières</a>
+        <a href="#/notes" data-route="notes">Saisie des notes</a>
+      </nav>
+      <div class="account" id="account" hidden>
+        <span class="account__email" id="account-email"></span>
+        <button type="button" class="btn btn--ghost btn--sm" id="logout">Déconnexion</button>
+      </div>
+    </div>
+  </header>
+
+  <main id="view" class="container" tabindex="-1">
+    <p class="state state--loading" role="status">Chargement…</p>
+  </main>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <footer class="footer container">
+    <p>Projet pédagogique 07 · données fictives uniquement · aucune utilisation commerciale.</p>
+  </footer>
+</body>
+</html>
