@@ -57,6 +57,14 @@ export function parseText(raw, label, max = 100) {
   return { ok: true, value };
 }
 
+/** Valide un code d'accès élève : 12 caractères hexadécimaux, tirets et espaces facultatifs. */
+export function parseAccessCode(raw) {
+  const compact = String(raw ?? "").toUpperCase().replace(/[\s-]/g, "");
+  if (compact === "") return { ok: false, error: "Saisissez le code d'accès." };
+  if (!/^[0-9A-F]{12}$/.test(compact)) return { ok: false, error: "Le code comporte 12 caractères (chiffres et lettres A à F), par ex. A1B2-C3D4-E5F6." };
+  return { ok: true, value: compact.replace(/(.{4})(.{4})(.{4})/, "$1-$2-$3") };
+}
+
 /** Normalise pour la recherche : minuscules, sans accents. */
 export function normalize(s) {
   return String(s ?? "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().trim();

@@ -24,7 +24,7 @@ const base = `http://127.0.0.1:${server.address().port}/`;
 
 const browser = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH || undefined });
 const results = [];
-const hideToast = (p) => p.evaluate(() => document.getElementById("toast").classList.remove("is-visible"));
+const hideToast = (p) => p.evaluate(() => { const t = document.getElementById("toast"); t.style.transition = "none"; t.classList.remove("is-visible"); });
 const step = async (name, fn) => {
   try { await fn(); results.push(`PASS ${name}`); }
   catch (e) { results.push(`FAIL ${name} — ${e.message.slice(0, 400)}`); }
@@ -160,6 +160,74 @@ await step("isolation : B ne voit pas les données de A", async () => {
   await page.getByText("Aucun étudiant pour l'instant").waitFor();
   await page.click('a[data-route="matieres"]');
   await page.getByText("Aucune matière pour l'instant").waitFor();
+});
+
+
+async function login(email, password) {
+  await page.click("#logout");
+  await page.waitForURL(/#\/connexion/);
+  await page.fill("#email", email);
+  await page.fill("#password", password);
+  await page.click("#auth-submit");
+}
+let accessCode;
+
+await step("v1.1 : l'enseignant voit le code d'accès sur la fiche", async () => {
+  await login("enseignant.a@example.test", "secret123");
+  await page.waitForURL(/#\/etudiants/);
+  await page.getByRole("link", { name: "Étudiant Démo Alpha" }).click();
+  accessCode = (await page.locator("#access-code").textContent()).trim();
+  assert.match(accessCode, /^[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{4}$/);
+  assert.equal((await page.locator("#access-status").textContent()).trim(), "en attente");
+});
+
+await step("v1.1 : inscription élève → saisie du code (mauvais code refusé)", async () => {
+  await page.click("#logout");
+  await page.waitForURL(/#\/connexion/);
+  await page.click("#tab-up");
+  await page.check('input[name="role"][value="student"]');
+  await page.fill("#email", "eleve.alpha@example.test");
+  await page.fill("#password", "secret789");
+  await page.click("#auth-submit");
+  await page.waitForURL(/#\/rejoindre/);
+  await page.fill("#code", "1234");
+  await page.click("#join-submit");
+  await page.getByText("Le code comporte 12 caractères").waitFor();
+  await page.fill("#code", "0000-0000-0000");
+  await page.click("#join-submit");
+  await page.getByText("Code invalide ou déjà utilisé.").waitFor();
+});
+
+await step("v1.1 : l'élève voit ses notes en lecture seule (14,00)", async () => {
+  await page.fill("#code", accessCode.toLowerCase());
+  await page.click("#join-submit");
+  await page.waitForURL(/#\/mes-notes/);
+  await page.locator(".report__avg-value").waitFor();
+  assert.equal((await page.locator(".report__avg-value").textContent()).trim(), "14,00");
+  assert.equal(await page.locator(".report").count(), 1);
+  assert.equal(await page.locator("main input, main select").count(), 0, "aucun champ de saisie");
+  for (const r of ["etudiants", "matieres", "notes"]) assert.equal(await page.locator(`a[data-route="${r}"]`).isVisible(), false, r);
+  if (shots) await hideToast(page), await page.screenshot({ path: `${shots}/04-espace-eleve.png`, fullPage: true });
+});
+
+await step("v1.1 : l'élève ne peut pas ouvrir les écrans enseignant", async () => {
+  await page.evaluate(() => { location.hash = "#/matieres"; });
+  await page.waitForURL(/#\/mes-notes/);
+});
+
+await step("v1.1 : l'enseignant voit « rattaché » puis révoque l'accès", async () => {
+  await login("enseignant.a@example.test", "secret123");
+  await page.waitForURL(/#\/etudiants/);
+  await page.locator("tr", { hasText: "Alpha" }).getByText("rattaché").waitFor();
+  await page.getByRole("link", { name: "Étudiant Démo Alpha" }).click();
+  await page.click("#access-reset");
+  await page.getByText("Accès révoqué").waitFor();
+  assert.notEqual((await page.locator("#access-code").textContent()).trim(), accessCode);
+});
+
+await step("v1.1 : après révocation, l'élève ne voit plus ses notes", async () => {
+  await login("eleve.alpha@example.test", "secret789");
+  await page.waitForURL(/#\/rejoindre/);
 });
 
 await step("aucune erreur JavaScript", async () => assert.deepEqual(errors, []));

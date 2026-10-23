@@ -6,6 +6,19 @@ const listeners = [];
 const uid = () => crypto.randomUUID();
 const err = (code, message) => ({ code, message });
 
+const newCode = () => crypto.randomUUID().replace(/-/g, "").slice(0, 12).toUpperCase().replace(/(.{4})(.{4})(.{4})/, "$1-$2-$3");
+const isStudent = () => db.students.some((s) => s.user_id === current?.id);
+
+// Lecture : propriétaire, ou élève rattaché (sa fiche, ses notes, les matières de son enseignant).
+function readable(table, row) {
+  if (owned(table, row)) return true;
+  const mine = db.students.filter((s) => s.user_id === current?.id);
+  if (table === "students") return row.user_id === current?.id;
+  if (table === "grades") return mine.some((s) => s.id === row.student_id);
+  if (table === "subjects") return mine.some((s) => s.owner_id === row.owner_id);
+  return false;
+}
+
 function owned(table, row) {
   if (table === "grades") {
     const s = db.students.find((x) => x.id === row.student_id);
@@ -45,8 +58,9 @@ class Query {
   maybeSingle() { this.mode = "maybe"; return this; }
   then(resolve, reject) { return new Promise((r) => setTimeout(r, 30)).then(() => this.run()).then(resolve, reject); }
 
-  visible() {
-    return db[this.table].filter((r) => owned(this.table, r) && this.filters.every(([c, v]) => r[c] === v));
+  visible(forRead = false) {
+    const ok = forRead ? readable : owned;
+    return db[this.table].filter((r) => ok(this.table, r) && this.filters.every(([c, v]) => r[c] === v));
   }
 
   run() {
@@ -54,9 +68,11 @@ class Query {
     const t = this.table;
     let rows;
     if (this.op === "select") {
-      rows = this.visible().map((r) => ({ ...r }));
+      rows = this.visible(true).map((r) => ({ ...r }));
       if (this.joinSubjects) rows.forEach((r) => (r.subjects = { coefficient: db.subjects.find((m) => m.id === r.subject_id).coefficient }));
       if (this.orderBy) rows.sort((a, b) => String(a[this.orderBy]).localeCompare(String(b[this.orderBy])));
+    } else if (isStudent()) {
+      return { data: null, error: err("42501", "row-level security") };
     } else if (this.op === "insert" || this.op === "upsert") {
       const existing = this.op === "upsert" && db.grades.find((g) => g.student_id === this.payload.student_id && g.subject_id === this.payload.subject_id && owned(t, g));
       if (existing) {
@@ -66,6 +82,7 @@ class Query {
       } else {
         const row = { id: uid(), ...this.payload };
         if (t !== "grades") row.owner_id = current.id;
+        if (t === "students") { row.user_id = null; row.access_code = newCode(); }
         const e = check(t, row); if (e) return { data: null, error: e };
         db[t].push(row); rows = [{ ...row }];
       }
@@ -91,14 +108,36 @@ class Query {
 
 const emit = () => listeners.forEach((cb) => cb("CHANGE", current ? { user: current } : null));
 
+async function rpc(name, args) {
+  await new Promise((r) => setTimeout(r, 30));
+  if (!current) return { data: null, error: err("42501", "Connexion requise.") };
+  if (name === "claim_student") {
+    if (db.students.some((s) => s.owner_id === current.id) || db.subjects.some((s) => s.owner_id === current.id)) {
+      return { data: null, error: err("P0001", "Ce compte est un compte enseignant : créez un compte séparé pour l'élève.") };
+    }
+    const s = db.students.find((x) => x.access_code === args.p_code.trim().toUpperCase() && !x.user_id);
+    if (!s) return { data: null, error: err("P0002", "Code invalide ou déjà utilisé.") };
+    s.user_id = current.id;
+    return { data: s.id, error: null };
+  }
+  if (name === "reset_student_access") {
+    const s = db.students.find((x) => x.id === args.p_student && x.owner_id === current.id);
+    if (!s) return { data: null, error: err("P0002", "Fiche introuvable.") };
+    s.user_id = null; s.access_code = newCode();
+    return { data: s.access_code, error: null };
+  }
+  return { data: null, error: err("PGRST202", "unknown function") };
+}
+
 export function createClient() {
   return {
     from: (table) => new Query(table),
+    rpc,
     auth: {
       async getSession() { return { data: { session: current ? { user: current } : null }, error: null }; },
-      async signUp({ email, password }) {
+      async signUp({ email, password, options }) {
         if (db.users.find((u) => u.email === email)) return { data: null, error: { message: "User already registered" } };
-        const u = { id: uid(), email, password }; db.users.push(u); current = u; emit();
+        const u = { id: uid(), email, password, user_metadata: options?.data ?? {} }; db.users.push(u); current = u; emit();
         return { data: { session: { user: u } }, error: null };
       },
       async signInWithPassword({ email, password }) {

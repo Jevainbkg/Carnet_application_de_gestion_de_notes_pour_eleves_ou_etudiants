@@ -1,6 +1,6 @@
 # Rapport de développement — Carnet (projet 07)
 
-**Projet** : gestion-notes-etudiants · **Date** : 23/10/2026 · **Version** : 1.0.0
+**Projet** : gestion-notes-etudiants · **Date** : 23/10/2026 · **Version** : 1.1.0
 **Source de vérité** : [cahier des charges](cahier-des-charges.md).
 
 ## 1. Objectif
@@ -64,15 +64,29 @@ Supabase : Auth (comptes enseignants) + Postgres (RLS)
 | Pas de clé service_role dans le navigateur | ✅ | Seule la clé anon est prévue (`config.js`) |
 | Bonus : relevé imprimable PDF | ✅ | Bouton « Imprimer / PDF » |
 | Vocabulaire adaptable (élève / étudiant) | ✅ | `app/js/labels.js`, un seul réglage |
+| v1.1 : espace élève en lecture seule | ✅ | Tests base 13 vérifications + tests UI 6 parcours |
 | Bonus : groupes / classes | ❌ | Non réalisé |
 | Déploiement HTTPS et test sur un autre appareil | ⏳ | Voir [rapport-deploiement.md](rapport-deploiement.md) |
+
+## 7 bis. Évolution v1.1 — espace élève / étudiant
+Demande : permettre aux élèves ou étudiants de consulter leurs notes. Prompt : [prompt-execution-v1.1.md](prompt-execution-v1.1.md).
+
+| Décision | Raison | Alternative écartée |
+|---|---|---|
+| Rattachement par **code d'accès** à usage unique | Aucun e-mail d'élève à collecter ; pas besoin de clé `service_role` ; l'enseignant contrôle qui accède | Invitation par e-mail (nécessite une fonction serveur avec clé secrète) |
+| Mode élève **déduit des données** (fiche rattachée), pas d'un rôle déclaré | Le choix à l'inscription ne peut pas servir à usurper un rôle ; la base fait foi | Colonne `role` modifiable |
+| Écriture de `user_id` / `access_code` seulement via `claim_student` et `reset_student_access` (droits par colonne) | Un enseignant ne peut pas rattacher de force un compte arbitraire ; un élève ne peut pas choisir sa fiche | Laisser la colonne modifiable et filtrer dans l'interface |
+| Politiques de **lecture** séparées, écriture refusée aux comptes élèves (`is_student()`) | Lecture seule garantie côté serveur | Masquer simplement les boutons |
+| Migration additive et idempotente | Les bases déjà créées en v1.0 se mettent à jour en relançant `schema.sql` (testé sur une base v1.0 avec données) | Recréer les tables |
+
+Correctif découvert pendant les tests : un écran dont les données arrivaient après une déconnexion pouvait s'afficher par-dessus l'écran de connexion. Chaque navigation porte désormais un numéro ; un écran quitté n'affiche plus rien.
 
 ## 8. Tests
 | Suite | Commande | Résultat |
 |---|---|---|
-| Règles métier (node:test) | `npm test` | **10/10 PASS** |
-| Base (Postgres 16, émulation `auth.uid()`) | `npm run test:db` | **11/11 PASS** |
-| Interface (Chromium, faux Supabase en mémoire) | `npm run test:ui` | **14/14 PASS** |
+| Règles métier (node:test) | `npm test` | **11/11 PASS** |
+| Base (Postgres 16, émulation `auth.uid()`) | `npm run test:db` | **24/24 PASS** (dont 13 espace élève) |
+| Interface (Chromium, faux Supabase en mémoire) | `npm run test:ui` | **20/20 PASS** (dont 6 espace élève) |
 
 Le test d'interface utilise un faux Supabase. La sécurité réelle est prouvée par le test de base. Il reste à la confirmer en ligne (recette du rapport de déploiement).
 

@@ -21,10 +21,11 @@ export const auth = {
   async signIn(email, password) {
     return unwrap(await supabase.auth.signInWithPassword({ email, password }));
   },
-  async signUp(email, password) {
+  // role ("teacher" | "student") n'est qu'une préférence d'affichage : la sécurité est dans la base.
+  async signUp(email, password, role) {
     return unwrap(await supabase.auth.signUp({
       email, password,
-      options: { emailRedirectTo: location.origin + location.pathname },
+      options: { emailRedirectTo: location.origin + location.pathname, data: { role } },
     }));
   },
   async signOut() {
@@ -38,7 +39,7 @@ export const auth = {
 // ---------- Étudiants ----------
 export async function listStudentsWithAverages() {
   const [students, grades] = await Promise.all([
-    supabase.from("students").select("id, name, student_code").order("name").then(unwrap),
+    supabase.from("students").select("id, name, student_code, user_id").order("name").then(unwrap),
     supabase.from("grades").select("student_id, value, subjects(coefficient)").then(unwrap),
   ]);
   const byStudent = new Map();
@@ -53,7 +54,7 @@ export async function listStudentsWithAverages() {
 }
 
 export async function getStudent(id) {
-  return unwrap(await supabase.from("students").select("id, name, student_code").eq("id", id).maybeSingle());
+  return unwrap(await supabase.from("students").select("id, owner_id, name, student_code, user_id, access_code").eq("id", id).maybeSingle());
 }
 
 export async function saveStudent({ id, name, student_code }) {
@@ -69,7 +70,7 @@ export async function deleteStudent(id) {
 
 // ---------- Matières ----------
 export async function listSubjects() {
-  return unwrap(await supabase.from("subjects").select("id, name, coefficient").order("name"));
+  return unwrap(await supabase.from("subjects").select("id, owner_id, name, coefficient").order("name"));
 }
 
 export async function saveSubject({ id, name, coefficient }) {
@@ -101,4 +102,20 @@ export async function upsertGrade(student_id, subject_id, value) {
 
 export async function deleteGrade(student_id, subject_id) {
   unwrap(await supabase.from("grades").delete().eq("student_id", student_id).eq("subject_id", subject_id));
+}
+
+// ---------- Espace élève / étudiant (v1.1) ----------
+// Fiches rattachées au compte connecté (vide pour un enseignant).
+export async function myRecords(userId) {
+  return unwrap(await supabase.from("students").select("id, owner_id, name, student_code").eq("user_id", userId).order("name"));
+}
+
+// Rattache le compte connecté à une fiche grâce au code donné par l'enseignant.
+export async function claimStudent(code) {
+  return unwrap(await supabase.rpc("claim_student", { p_code: code }));
+}
+
+// Révoque l'accès de l'élève et renvoie le nouveau code.
+export async function resetStudentAccess(studentId) {
+  return unwrap(await supabase.rpc("reset_student_access", { p_student: studentId }));
 }

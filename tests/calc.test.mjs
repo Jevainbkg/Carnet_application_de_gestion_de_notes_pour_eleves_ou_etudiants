@@ -65,3 +65,11 @@ test("messages d'erreur lisibles", () => {
   assert.equal(errorMessage(new TypeError("Failed to fetch")), "Connexion impossible. Vérifiez votre réseau puis réessayez.");
   assert.equal(errorMessage({ message: "Invalid login credentials" }), "E-mail ou mot de passe incorrect.");
 });
+
+import { parseAccessCode } from "../app/js/calc.js";
+
+test("code d'accès : normalisation et validation", () => {
+  assert.deepEqual(parseAccessCode(" a1b2 c3d4-e5f6 "), { ok: true, value: "A1B2-C3D4-E5F6" });
+  assert.deepEqual(parseAccessCode("A1B2C3D4E5F6"), { ok: true, value: "A1B2-C3D4-E5F6" });
+  for (const bad of ["", "A1B2-C3D4", "ZZZZ-ZZZZ-ZZZZ", "A1B2-C3D4-E5F6-0"]) assert.equal(parseAccessCode(bad).ok, false, bad);
+});

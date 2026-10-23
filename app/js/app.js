@@ -2,7 +2,7 @@
 import * as api from "./api.js";
 import {
   weightedAverage, formatScore, parseGrade, parseCoefficient, parseText,
-  searchStudents, sortStudents, errorMessage,
+  searchStudents, sortStudents, errorMessage, parseAccessCode,
 } from "./calc.js";
 import { L } from "./labels.js";
 
@@ -12,6 +12,8 @@ const account = document.getElementById("account");
 const toastEl = document.getElementById("toast");
 
 let session = null;
+// "teacher" | "student" (compte rattaché à une fiche) | "pending" (inscrit comme élève, sans code validé)
+let role = "teacher";
 const ui = { query: "", sort: "avg-desc", subjectId: "" }; // préférences d'écran conservées entre les vues
 
 // ---------- Utilitaires ----------
@@ -81,13 +83,33 @@ function formError(form, err) {
 }
 
 // ---------- Routeur ----------
+// Incrémenté à chaque navigation : un écran dont les données arrivent après qu'on l'a quitté n'affiche rien.
+let navSeq = 0;
+
 const routes = {
   connexion: viewLogin,
   etudiants: viewStudents,
   etudiant: viewStudent,
   matieres: viewSubjects,
   notes: viewGrades,
+  "mes-notes": viewMyGrades,
+  rejoindre: viewJoin,
 };
+
+const ROUTES_BY_ROLE = {
+  teacher: ["etudiants", "etudiant", "matieres", "notes", "rejoindre"],
+  student: ["mes-notes", "rejoindre"],
+  pending: ["rejoindre"],
+};
+const HOME = { teacher: "#/etudiants", student: "#/mes-notes", pending: "#/rejoindre" };
+
+// Le mode d'affichage découle des données réellement visibles (la base fait foi).
+async function refreshRole() {
+  if (!session) return void (role = "teacher");
+  const records = await api.myRecords(session.user.id);
+  if (records.length > 0) role = "student";
+  else role = session.user.user_metadata?.role === "student" ? "pending" : "teacher";
+}
 
 function currentRoute() {
   const [, name = "", param] = location.hash.split("/");
@@ -97,9 +119,11 @@ function currentRoute() {
 async function router() {
   let { name, param } = currentRoute();
   if (!session && name !== "connexion") return void (location.hash = "#/connexion");
-  if (session && (name === "connexion" || name === "")) return void (location.hash = "#/etudiants");
+  if (session && !ROUTES_BY_ROLE[role].includes(name)) return void (location.hash = HOME[role]);
 
   nav.hidden = !session;
+  nav.querySelectorAll("a").forEach((a) => (a.hidden = !ROUTES_BY_ROLE[role].includes(a.dataset.route)
+    || (role === "teacher" && a.dataset.route === "rejoindre")));
   account.hidden = !session;
   nav.querySelectorAll("a").forEach((a) => {
     const active = a.dataset.route === name || (name === "etudiant" && a.dataset.route === "etudiants");
@@ -107,6 +131,7 @@ async function router() {
     else a.removeAttribute("aria-current");
   });
 
+  navSeq += 1;
   await routes[name](param);
   view.focus({ preventScroll: true });
 }
@@ -115,8 +140,8 @@ async function router() {
 function viewLogin() {
   render(`
     <section class="auth">
-      <h1>Connexion enseignant</h1>
-      <p class="muted">Chaque enseignant ne voit que ses propres ${L.many}, matières et notes.</p>
+      <h1>Connexion</h1>
+      <p class="muted">Enseignants : gérez vos ${L.many}, matières et notes. ${L.Many} : consultez vos notes avec le code donné par votre enseignant.</p>
       <div class="tabs" role="tablist" aria-label="Mode">
         <button type="button" role="tab" id="tab-in" aria-selected="true" aria-controls="auth-form">Se connecter</button>
         <button type="button" role="tab" id="tab-up" aria-selected="false" aria-controls="auth-form">Créer un compte</button>
@@ -132,6 +157,11 @@ function viewLogin() {
           <input id="password" name="password" type="password" autocomplete="current-password" minlength="6" required>
           <p class="field__error" data-error-for="password"></p>
         </div>
+        <fieldset class="field role-choice" id="role-choice" hidden>
+          <legend>Je suis</legend>
+          <label><input type="radio" name="role" value="teacher" checked> Enseignant ou formateur</label>
+          <label><input type="radio" name="role" value="student"> Élève ou étudiant</label>
+        </fieldset>
         <p class="form-error" role="alert"></p>
         <button type="submit" class="btn" id="auth-submit">Se connecter</button>
       </form>
@@ -146,6 +176,7 @@ function viewLogin() {
     view.querySelector("#tab-up").setAttribute("aria-selected", String(m === "up"));
     submit.textContent = m === "in" ? "Se connecter" : "Créer le compte";
     form.elements.password.autocomplete = m === "in" ? "current-password" : "new-password";
+    view.querySelector("#role-choice").hidden = m === "in";
     clearErrors(form);
   };
   view.querySelector("#tab-in").addEventListener("click", () => setMode("in"));
@@ -165,7 +196,7 @@ function viewLogin() {
         if (mode === "in") {
           await api.auth.signIn(email, password);
         } else {
-          const res = await api.auth.signUp(email, password);
+          const res = await api.auth.signUp(email, password, form.elements.role.value);
           if (!res.session) toast("Compte créé. Confirmez votre e-mail puis connectez-vous.");
         }
       } catch (err) {
@@ -177,13 +208,16 @@ function viewLogin() {
 
 // ---------- Étudiants ----------
 async function viewStudents() {
+  const t = navSeq;
   loading();
   let rows;
   try {
     rows = await api.listStudentsWithAverages();
   } catch (err) {
+    if (t !== navSeq) return;
     return showError(err, viewStudents);
   }
+  if (t !== navSeq) return; // écran quitté pendant le chargement
 
   render(`
     <div class="page-head">
@@ -246,7 +280,7 @@ async function viewStudents() {
   function drawList() {
     const shown = sortStudents(searchStudents(rows, ui.query), ui.sort);
     if (rows.length === 0) {
-      list.innerHTML = `<p class="state state--empty">Aucun ${L.one} pour l'instant. Ajoutez-en un avec le formulaire ci-dessus.</p>`;
+      list.innerHTML = `<p class="state state--empty">Aucun ${L.one} pour l'instant. Ajoutez-en un avec le formulaire ci-dessus.</p><p class="muted small">Vous êtes ${L.one} ? <a href="#/rejoindre">Saisissez le code de votre enseignant</a>.</p>`;
       return;
     }
     if (shown.length === 0) {
@@ -257,7 +291,7 @@ async function viewStudents() {
       <div class="table-wrap">
         <table class="table">
           <caption class="sr-only">Liste des ${L.many} et moyennes pondérées</caption>
-          <thead><tr><th scope="col">Nom</th><th scope="col">Code</th><th scope="col" class="num">Notes</th><th scope="col" class="num">Moyenne</th><th scope="col"><span class="sr-only">Actions</span></th></tr></thead>
+          <thead><tr><th scope="col">Nom</th><th scope="col">Code</th><th scope="col" class="num">Notes</th><th scope="col" class="num">Moyenne</th><th scope="col">Accès</th><th scope="col"><span class="sr-only">Actions</span></th></tr></thead>
           <tbody>
             ${shown.map((s) => `
               <tr>
@@ -265,6 +299,7 @@ async function viewStudents() {
                 <td data-label="Code">${esc(s.student_code)}</td>
                 <td data-label="Notes" class="num">${s.gradeCount}</td>
                 <td data-label="Moyenne" class="num"><span class="score ${scoreClass(s.average)}">${formatScore(s.average)}</span></td>
+                <td data-label="Accès">${s.user_id ? `<span class="tag tag--ok">rattaché</span>` : `<span class="tag">en attente</span>`}</td>
                 <td class="actions">
                   <button type="button" class="btn btn--ghost btn--sm" data-edit="${esc(s.id)}">Modifier</button>
                   <button type="button" class="btn btn--danger btn--sm" data-delete="${esc(s.id)}">Retirer</button>
@@ -334,31 +369,21 @@ function scoreClass(n) {
   return n >= 10 ? "score--pass" : "score--fail";
 }
 
-// ---------- Fiche étudiant (relevé) ----------
-async function viewStudent(id) {
-  loading();
-  let student, subjects, grades;
-  try {
-    [student, subjects, grades] = await Promise.all([api.getStudent(id), api.listSubjects(), api.gradesForStudent(id)]);
-  } catch (err) {
-    return showError(err, () => viewStudent(id));
-  }
-  if (!student) {
-    return render(`<div class="state state--empty"><p>${L.One} introuvable.</p><a class="btn" href="#/etudiants">Retour à la liste</a></div>`, "Introuvable");
-  }
-
+// ---------- Relevé de notes (partagé enseignant / élève) ----------
+// subjects : matières de l'enseignant propriétaire de la fiche ; grades : notes de la fiche.
+function reportHtml(student, subjects, grades, { headingLevel = 1, actions = "", extra = "" } = {}) {
+  const h = `h${headingLevel}`;
   const bySubject = new Map(grades.map((g) => [g.subject_id, Number(g.value)]));
   const lines = subjects.map((m) => ({ ...m, value: bySubject.has(m.id) ? bySubject.get(m.id) : null }));
   const graded = lines.filter((l) => l.value != null);
   const average = weightedAverage(graded.map((l) => ({ value: l.value, coefficient: l.coefficient })));
   const totalCoef = graded.reduce((s, l) => s + l.coefficient, 0);
 
-  render(`
-    <p class="breadcrumb"><a href="#/etudiants">← ${L.Many}</a></p>
+  return `
     <article class="report card">
       <header class="report__head">
         <div>
-          <h1>${esc(student.name)}</h1>
+          <${h} class="report__title">${esc(student.name)}</${h}>
           <p class="muted">Code ${esc(student.student_code)} · relevé de notes</p>
         </div>
         <div class="report__avg">
@@ -368,7 +393,7 @@ async function viewStudent(id) {
         </div>
       </header>
       ${subjects.length === 0
-        ? `<p class="state state--empty">Aucune matière. <a href="#/matieres">Créez d'abord des matières.</a></p>`
+        ? `<p class="state state--empty">Aucune matière pour l'instant.</p>`
         : `<div class="table-wrap"><table class="table">
             <caption class="sr-only">Relevé de notes de ${esc(student.name)}</caption>
             <thead><tr><th scope="col">Matière</th><th scope="col" class="num">Coef.</th><th scope="col" class="num">Note /20</th><th scope="col" class="num">Points</th></tr></thead>
@@ -384,24 +409,159 @@ async function viewStudent(id) {
             <tfoot><tr><th scope="row">Total (matières notées)</th><td class="num">${totalCoef}</td><td></td><td class="num">${formatScore(graded.reduce((s, l) => s + l.value * l.coefficient, 0))}</td></tr></tfoot>
           </table></div>
           <p class="muted small">Moyenne = somme(note × coefficient) ÷ somme des coefficients des matières notées. Les matières non notées ne comptent pas comme 0.</p>`}
+      ${extra}
       <div class="report__actions no-print">
-        <a class="btn" href="#/notes">Saisir des notes</a>
-        <button type="button" class="btn btn--ghost" id="print">Imprimer / PDF</button>
+        ${actions}
+        <button type="button" class="btn btn--ghost" data-print>Imprimer / PDF</button>
       </div>
-    </article>`, student.name);
+    </article>`;
+}
 
-  view.querySelector("#print").addEventListener("click", () => window.print());
+function bindPrint() {
+  view.querySelectorAll("[data-print]").forEach((b) => b.addEventListener("click", () => window.print()));
+}
+
+// ---------- Fiche (vue enseignant) ----------
+async function viewStudent(id) {
+  const t = navSeq;
+  loading();
+  let student, subjects, grades;
+  try {
+    [student, subjects, grades] = await Promise.all([api.getStudent(id), api.listSubjects(), api.gradesForStudent(id)]);
+  } catch (err) {
+    if (t !== navSeq) return;
+    return showError(err, () => viewStudent(id));
+  }
+  if (t !== navSeq) return; // écran quitté pendant le chargement
+  if (!student) {
+    return render(`<div class="state state--empty"><p>${L.One} introuvable.</p><a class="btn" href="#/etudiants">Retour à la liste</a></div>`, "Introuvable");
+  }
+  subjects = subjects.filter((m) => m.owner_id === student.owner_id);
+
+  const access = `
+    <section class="access no-print" aria-labelledby="access-title">
+      <h2 id="access-title">Accès de l'${L.one}</h2>
+      <p class="muted small">Donnez ce code : après avoir créé son compte, l'${L.one} le saisit pour consulter ses notes, en lecture seule.</p>
+      <p class="access__row">
+        <code class="access__code" id="access-code">${esc(student.access_code)}</code>
+        <span class="tag" id="access-status">${student.user_id ? "compte rattaché" : "en attente"}</span>
+      </p>
+      <button type="button" class="btn btn--ghost btn--sm" id="access-copy">Copier le code</button>
+      <button type="button" class="btn btn--danger btn--sm" id="access-reset">Révoquer et générer un nouveau code</button>
+    </section>`;
+
+  render(`
+    <p class="breadcrumb"><a href="#/etudiants">← ${L.Many}</a></p>
+    ${reportHtml(student, subjects, grades, { actions: `<a class="btn" href="#/notes">Saisir des notes</a>`, extra: access })}`, student.name);
+  bindPrint();
+
+  view.querySelector("#access-copy").addEventListener("click", async () => {
+    try {
+      await navigator.clipboard.writeText(view.querySelector("#access-code").textContent);
+      toast("Code copié.");
+    } catch {
+      toast("Copie impossible : sélectionnez le code à la main.", "error");
+    }
+  });
+  const resetBtn = view.querySelector("#access-reset");
+  resetBtn.addEventListener("click", () => {
+    if (!confirm(`Révoquer l'accès de ${student.name} ? Son compte ne verra plus ses notes et l'ancien code ne fonctionnera plus.`)) return;
+    busy(resetBtn, async () => {
+      try {
+        const code = await api.resetStudentAccess(student.id);
+        view.querySelector("#access-code").textContent = code;
+        view.querySelector("#access-status").textContent = "en attente";
+        toast("Accès révoqué, nouveau code généré.");
+      } catch (err) {
+        toast(errorMessage(err), "error");
+      }
+    });
+  });
+}
+
+// ---------- Mes notes (vue élève, lecture seule) ----------
+async function viewMyGrades() {
+  const t = navSeq;
+  loading();
+  let records, subjects;
+  try {
+    [records, subjects] = await Promise.all([api.myRecords(session.user.id), api.listSubjects()]);
+  } catch (err) {
+    if (t !== navSeq) return;
+    return showError(err, viewMyGrades);
+  }
+  if (t !== navSeq) return; // écran quitté pendant le chargement
+  if (records.length === 0) return void (location.hash = "#/rejoindre");
+  let gradeLists;
+  try {
+    gradeLists = await Promise.all(records.map((r) => api.gradesForStudent(r.id)));
+  } catch (err) {
+    if (t !== navSeq) return;
+    return showError(err, viewMyGrades);
+  }
+  if (t !== navSeq) return; // écran quitté pendant le chargement
+  render(`
+    <div class="page-head">
+      <h1>Mes notes</h1>
+      <p class="muted">Consultation seule. Pour toute correction, adressez-vous à votre enseignant.</p>
+    </div>
+    <div class="reports">
+      ${records.map((r, i) => reportHtml(r, subjects.filter((m) => m.owner_id === r.owner_id), gradeLists[i], { headingLevel: 2 })).join("")}
+    </div>
+    <p class="no-print"><a href="#/rejoindre">Ajouter le code d'un autre enseignant</a></p>`, "Mes notes");
+  bindPrint();
+}
+
+// ---------- Rejoindre (saisie du code) ----------
+function viewJoin() {
+  render(`
+    <section class="auth">
+      <h1>Accéder à mes notes</h1>
+      <p class="muted">Saisissez le code d'accès donné par votre enseignant (format XXXX-XXXX-XXXX).</p>
+      <form id="join-form" class="card form" novalidate>
+        <div class="field">
+          <label for="code">Code d'accès</label>
+          <input id="code" name="code" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="14" placeholder="A1B2-C3D4-E5F6" required>
+          <p class="field__error" data-error-for="code"></p>
+        </div>
+        <p class="form-error" role="alert"></p>
+        <button type="submit" class="btn" id="join-submit">Valider le code</button>
+      </form>
+      ${role === "student" ? `<p><a href="#/mes-notes">← Mes notes</a></p>` : ""}
+    </section>`, "Accéder à mes notes");
+
+  const form = view.querySelector("#join-form");
+  const submit = view.querySelector("#join-submit");
+  form.addEventListener("submit", (e) => {
+    e.preventDefault();
+    clearErrors(form);
+    const code = parseAccessCode(form.elements.code.value);
+    if (!code.ok) return fieldError(form, "code", code.error);
+    busy(submit, async () => {
+      try {
+        await api.claimStudent(code.value);
+        await refreshRole();
+        toast("Code accepté.");
+        location.hash = "#/mes-notes";
+      } catch (err) {
+        formError(form, err);
+      }
+    });
+  });
 }
 
 // ---------- Matières ----------
 async function viewSubjects() {
+  const t = navSeq;
   loading();
   let subjects;
   try {
     subjects = await api.listSubjects();
   } catch (err) {
+    if (t !== navSeq) return;
     return showError(err, viewSubjects);
   }
+  if (t !== navSeq) return; // écran quitté pendant le chargement
 
   render(`
     <div class="page-head"><h1>Matières</h1><p class="muted">Le coefficient est un entier de 1 à 100.</p></div>
@@ -492,13 +652,16 @@ async function viewSubjects() {
 
 // ---------- Saisie des notes ----------
 async function viewGrades() {
+  const t = navSeq;
   loading();
   let subjects, students;
   try {
     [subjects, students] = await Promise.all([api.listSubjects(), api.listStudentsWithAverages()]);
   } catch (err) {
+    if (t !== navSeq) return;
     return showError(err, viewGrades);
   }
+  if (t !== navSeq) return; // écran quitté pendant le chargement
   if (subjects.length === 0 || students.length === 0) {
     return render(`
       <div class="page-head"><h1>Saisie des notes</h1></div>
@@ -606,13 +769,16 @@ async function start() {
   } catch (err) {
     return showError(err, start);
   }
-  api.auth.onChange((s) => {
+  api.auth.onChange(async (s) => {
     const changed = (s?.user?.id ?? null) !== (session?.user?.id ?? null);
     session = s;
     document.getElementById("account-email").textContent = s?.user?.email ?? "";
-    if (changed) router();
+    if (!changed) return;
+    try { await refreshRole(); } catch (err) { return showError(err, start); }
+    router();
   });
   document.getElementById("account-email").textContent = session?.user?.email ?? "";
+  try { await refreshRole(); } catch (err) { return showError(err, start); }
   window.addEventListener("hashchange", router);
   router();
 }

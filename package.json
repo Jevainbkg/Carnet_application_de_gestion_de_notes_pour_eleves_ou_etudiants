@@ -1,13 +1,13 @@
 {
   "name": "gestion-notes-etudiants",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "private": true,
   "description": "Projet 07 — gestion des notes des étudiants (HTML/CSS/JS + Supabase).",
   "type": "module",
   "scripts": {
     "test": "node --test tests/calc.test.mjs",
     "test:ui": "node tests/e2e/ui.test.mjs",
-    "test:db": "psql -v ON_ERROR_STOP=1 -f tests/db/supabase-shim.sql -f supabase/schema.sql -f tests/db/rls.test.sql",
+    "test:db": "psql -v ON_ERROR_STOP=1 -f tests/db/supabase-shim.sql -f supabase/schema.sql -f tests/db/rls.test.sql -f tests/db/student.test.sql",
     "dev": "npx --yes serve@14.2.4 app"
   },
   "devDependencies": {
