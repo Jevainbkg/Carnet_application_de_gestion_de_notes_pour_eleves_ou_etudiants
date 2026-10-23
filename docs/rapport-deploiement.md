@@ -8,8 +8,8 @@
 | Élément | Service | Offre | URL |
 |---|---|---|---|
 | Code source | GitHub (public) | Gratuit | https://github.com/Jevainbkg/Carnet_application_de_gestion_de_notes_pour_eleves_ou_etudiants |
-| Base + authentification | Supabase | Free | [À COMPLÉTER] |
-| Site | Vercel | Hobby (personnel, non commercial) | [À COMPLÉTER] |
+| Base + authentification | Supabase | Free | https://znfqibgagcfuxkculkfv.supabase.co |
+| Site | Vercel | Hobby (personnel, non commercial) | https://carnet-notes-rho.vercel.app |
 
 ## 2. Contrôles avant déploiement
 | Contrôle | Résultat |
@@ -27,8 +27,8 @@
 |---|---|---|---|---|---|
 | 1 | Dépôt GitHub créé et code poussé | JevainBkg / Claude | ✅ | 23/10/2026 | `main` ; v1.1 via pull request |
 | 2 | Projet Supabase créé, `schema.sql` exécuté, RLS vérifié | JevainBkg | ⏳ | | |
-| 3 | `config.js` renseigné (URL + clé anon) | Claude | ⏳ | | |
-| 4 | Projet Vercel importé et déployé | JevainBkg | ⏳ | | |
+| 3 | `config.js` renseigné (URL + clé publishable) | Claude | ✅ | 23/10/2026 | PR #2 |
+| 4 | Projet Vercel importé et déployé | JevainBkg | ✅ | 23/10/2026 | projet `carnet-notes` |
 | 5 | URL Vercel ajoutée aux Redirect URLs Supabase | JevainBkg | ⏳ | | |
 | 6 | Recette en ligne | JevainBkg / Claude | ⏳ | | |
 
