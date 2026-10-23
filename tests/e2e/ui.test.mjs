@@ -230,6 +230,18 @@ await step("v1.1 : après révocation, l'élève ne voit plus ses notes", async 
   await page.waitForURL(/#\/rejoindre/);
 });
 
+await step("bouton jour / nuit : bascule et mémorise le choix", async () => {
+  const bg = () => page.evaluate(() => getComputedStyle(document.body).backgroundColor);
+  const light = await bg();
+  await page.click("#theme-toggle");
+  assert.equal(await page.evaluate(() => document.documentElement.dataset.theme), "dark");
+  assert.notEqual(await bg(), light);
+  await page.reload();
+  assert.equal(await page.evaluate(() => document.documentElement.dataset.theme), "dark");
+  await page.click("#theme-toggle");
+  assert.equal(await bg(), light);
+});
+
 await step("aucune erreur JavaScript", async () => assert.deepEqual(errors, []));
 
 // Mobile 375 px, thème sombre : pas de défilement horizontal
