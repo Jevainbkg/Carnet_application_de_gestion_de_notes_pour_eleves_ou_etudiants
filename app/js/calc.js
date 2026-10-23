@@ -1,3 +1,4 @@
+import { L } from "./labels.js";
 // Règles métier pures (sans DOM ni réseau) : testées par tests/calc.test.mjs.
 
 /**
@@ -91,7 +92,7 @@ export function errorMessage(err) {
   const code = err.code;
   const msg = String(err.message ?? err);
   if (code === "23505") {
-    if (msg.includes("students_owner_code_key")) return "Ce code étudiant existe déjà.";
+    if (msg.includes("students_owner_code_key")) return `Ce code ${L.one} existe déjà.`;
     if (msg.includes("subjects_owner_name_key")) return "Cette matière existe déjà.";
     return "Cet élément existe déjà.";
   }

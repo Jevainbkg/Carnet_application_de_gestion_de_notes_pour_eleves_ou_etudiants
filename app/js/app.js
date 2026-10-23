@@ -4,6 +4,7 @@ import {
   weightedAverage, formatScore, parseGrade, parseCoefficient, parseText,
   searchStudents, sortStudents, errorMessage,
 } from "./calc.js";
+import { L } from "./labels.js";
 
 const view = document.getElementById("view");
 const nav = document.getElementById("nav");
@@ -115,7 +116,7 @@ function viewLogin() {
   render(`
     <section class="auth">
       <h1>Connexion enseignant</h1>
-      <p class="muted">Chaque enseignant ne voit que ses propres étudiants, matières et notes.</p>
+      <p class="muted">Chaque enseignant ne voit que ses propres ${L.many}, matières et notes.</p>
       <div class="tabs" role="tablist" aria-label="Mode">
         <button type="button" role="tab" id="tab-in" aria-selected="true" aria-controls="auth-form">Se connecter</button>
         <button type="button" role="tab" id="tab-up" aria-selected="false" aria-controls="auth-form">Créer un compte</button>
@@ -186,20 +187,20 @@ async function viewStudents() {
 
   render(`
     <div class="page-head">
-      <h1>Étudiants</h1>
-      <p class="muted">${rows.length} étudiant${rows.length > 1 ? "s" : ""}</p>
+      <h1>${L.Many}</h1>
+      <p class="muted">${rows.length} ${rows.length > 1 ? L.many : L.one}</p>
     </div>
 
     <form id="student-form" class="card form form--inline" novalidate>
-      <h2 class="form__title" id="student-form-title">Ajouter un étudiant</h2>
+      <h2 class="form__title" id="student-form-title">Ajouter un ${L.one}</h2>
       <input type="hidden" name="id">
       <div class="field">
         <label for="s-name">Nom</label>
-        <input id="s-name" name="name" maxlength="100" autocomplete="off" required placeholder="Étudiant Démo">
+        <input id="s-name" name="name" maxlength="100" autocomplete="off" required placeholder="${L.One} Démo">
         <p class="field__error" data-error-for="name"></p>
       </div>
       <div class="field field--sm">
-        <label for="s-code">Code étudiant</label>
+        <label for="s-code">Code ${L.one}</label>
         <input id="s-code" name="student_code" maxlength="30" autocomplete="off" required placeholder="E001">
         <p class="field__error" data-error-for="student_code"></p>
       </div>
@@ -224,7 +225,7 @@ async function viewStudents() {
         </select>
       </div>
     </div>
-    <div id="student-list"></div>`, "Étudiants");
+    <div id="student-list"></div>`, L.Many);
 
   const form = view.querySelector("#student-form");
   const submit = view.querySelector("#student-submit");
@@ -236,7 +237,7 @@ async function viewStudents() {
   const resetForm = () => {
     form.reset();
     form.elements.id.value = "";
-    view.querySelector("#student-form-title").textContent = "Ajouter un étudiant";
+    view.querySelector("#student-form-title").textContent = `Ajouter un ${L.one}`;
     submit.textContent = "Ajouter";
     cancel.hidden = true;
     clearErrors(form);
@@ -245,17 +246,17 @@ async function viewStudents() {
   function drawList() {
     const shown = sortStudents(searchStudents(rows, ui.query), ui.sort);
     if (rows.length === 0) {
-      list.innerHTML = `<p class="state state--empty">Aucun étudiant pour l'instant. Ajoutez-en un avec le formulaire ci-dessus.</p>`;
+      list.innerHTML = `<p class="state state--empty">Aucun ${L.one} pour l'instant. Ajoutez-en un avec le formulaire ci-dessus.</p>`;
       return;
     }
     if (shown.length === 0) {
-      list.innerHTML = `<p class="state state--empty">Aucun étudiant ne correspond à « ${esc(ui.query)} ».</p>`;
+      list.innerHTML = `<p class="state state--empty">Aucun ${L.one} ne correspond à « ${esc(ui.query)} ».</p>`;
       return;
     }
     list.innerHTML = `
       <div class="table-wrap">
         <table class="table">
-          <caption class="sr-only">Liste des étudiants et moyennes pondérées</caption>
+          <caption class="sr-only">Liste des ${L.many} et moyennes pondérées</caption>
           <thead><tr><th scope="col">Nom</th><th scope="col">Code</th><th scope="col" class="num">Notes</th><th scope="col" class="num">Moyenne</th><th scope="col"><span class="sr-only">Actions</span></th></tr></thead>
           <tbody>
             ${shown.map((s) => `
@@ -319,7 +320,7 @@ async function viewStudents() {
     busy(submit, async () => {
       try {
         await api.saveStudent({ id, name: name.value, student_code: code.value });
-        toast(id ? "Étudiant modifié." : "Étudiant ajouté.");
+        toast(id ? `${L.One} modifié.` : `${L.One} ajouté.`);
         viewStudents();
       } catch (err) {
         formError(form, err);
@@ -343,7 +344,7 @@ async function viewStudent(id) {
     return showError(err, () => viewStudent(id));
   }
   if (!student) {
-    return render(`<div class="state state--empty"><p>Étudiant introuvable.</p><a class="btn" href="#/etudiants">Retour à la liste</a></div>`, "Introuvable");
+    return render(`<div class="state state--empty"><p>${L.One} introuvable.</p><a class="btn" href="#/etudiants">Retour à la liste</a></div>`, "Introuvable");
   }
 
   const bySubject = new Map(grades.map((g) => [g.subject_id, Number(g.value)]));
@@ -353,7 +354,7 @@ async function viewStudent(id) {
   const totalCoef = graded.reduce((s, l) => s + l.coefficient, 0);
 
   render(`
-    <p class="breadcrumb"><a href="#/etudiants">← Étudiants</a></p>
+    <p class="breadcrumb"><a href="#/etudiants">← ${L.Many}</a></p>
     <article class="report card">
       <header class="report__head">
         <div>
@@ -501,8 +502,8 @@ async function viewGrades() {
   if (subjects.length === 0 || students.length === 0) {
     return render(`
       <div class="page-head"><h1>Saisie des notes</h1></div>
-      <p class="state state--empty">Il faut au moins un étudiant et une matière.
-        ${students.length === 0 ? `<a href="#/etudiants">Ajouter un étudiant</a>` : ""}
+      <p class="state state--empty">Il faut au moins un ${L.one} et une matière.
+        ${students.length === 0 ? `<a href="#/etudiants">Ajouter un ${L.one}</a>` : ""}
         ${subjects.length === 0 ? `<a href="#/matieres">Créer une matière</a>` : ""}</p>`, "Saisie des notes");
   }
   if (!subjects.some((m) => m.id === ui.subjectId)) ui.subjectId = subjects[0].id;
@@ -588,6 +589,7 @@ async function viewGrades() {
 
 // ---------- Démarrage ----------
 async function start() {
+  nav.querySelector('[data-route="etudiants"]').textContent = L.Many;
   if (!api.isConfigured) {
     view.innerHTML = `<div class="state state--error" role="alert">
       <p><strong>Application non configurée.</strong></p>

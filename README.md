@@ -1,6 +1,6 @@
 # Carnet — gestion des notes des étudiants
 
-Projet 07 du parcours développeur junior. Un enseignant (fictif) enregistre ses étudiants, ses matières et leurs notes, puis consulte des moyennes pondérées fiables. Chaque enseignant n'accède qu'à ses propres données grâce à Supabase Auth et au Row Level Security (RLS).
+Projet 07 du parcours développeur junior. Un enseignant ou un formateur (collège, lycée, supérieur, centre de formation) enregistre ses élèves ou étudiants, ses matières et leurs notes, puis consulte des moyennes pondérées fiables. Chaque enseignant n'accède qu'à ses propres données grâce à Supabase Auth et au Row Level Security (RLS).
 
 > Démonstration pédagogique : données fictives uniquement, aucun usage commercial.
 
@@ -32,6 +32,10 @@ Projet 07 du parcours développeur junior. Un enseignant (fictif) enregistre ses
 | Liste des étudiants | Relevé de notes | Mobile (thème sombre) |
 |---|---|---|
 | ![Liste](docs/captures/01-etudiants.png) | ![Relevé](docs/captures/02-releve.png) | ![Mobile](docs/captures/03-mobile-sombre.png) |
+
+## Adapter le vocabulaire
+
+Pour un public du secondaire, remplacez `étudiant` par `élève` dans [`app/js/labels.js`](app/js/labels.js) : tous les libellés de l'interface suivent. La base de données ne change pas.
 
 ## Installation
 
@@ -117,7 +121,7 @@ docs/                captures et prompt d'exécution
 
 ## Documentation
 
-- [Cahier des charges — projet 07](docs/cahier-des-charges/projet-07-gestion-notes.pdf) · [document complet](docs/cahier-des-charges/cahiers-des-charges-10-projets.pdf)
+- [Cahier des charges](docs/cahier-des-charges.md)
 - [Rapport de développement](docs/rapport-developpement.md)
 - [Rapport de déploiement](docs/rapport-deploiement.md) · [procédure pas à pas](docs/deploiement.md)
 - [Prompt d'exécution](docs/prompt-execution.md)

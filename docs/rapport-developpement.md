@@ -1,10 +1,10 @@
 # Rapport de développement — Carnet (projet 07)
 
 **Projet** : gestion-notes-etudiants · **Date** : 23/10/2026 · **Version** : 1.0.0
-**Source de vérité** : [cahier des charges, projet 07](cahier-des-charges/projet-07-gestion-notes.pdf) (extrait des pages 1, 14 et 15 du [document complet](cahier-des-charges/cahiers-des-charges-10-projets.pdf)).
+**Source de vérité** : [cahier des charges](cahier-des-charges.md).
 
 ## 1. Objectif
-Permettre à un enseignant fictif d'enregistrer des étudiants, des matières et des notes, puis de calculer des moyennes pondérées fiables, chaque enseignant ne voyant que ses propres données.
+Permettre à un enseignant ou à un formateur (secondaire, supérieur, formation) d'enregistrer des élèves ou des étudiants, des matières et des notes, puis de calculer des moyennes pondérées fiables, chaque enseignant ne voyant que ses propres données.
 
 ## 2. Démarche
 1. **Cadrage** : le cahier des charges a été transformé en prompt d'exécution précis ([prompt-execution.md](prompt-execution.md)), qui fixe les règles, les tests et les critères d'acceptation.
@@ -63,6 +63,7 @@ Supabase : Auth (comptes enseignants) + Postgres (RLS)
 | Écrans : connexion, liste, fiche, matières, saisie | ✅ | Captures `docs/captures/` |
 | Pas de clé service_role dans le navigateur | ✅ | Seule la clé anon est prévue (`config.js`) |
 | Bonus : relevé imprimable PDF | ✅ | Bouton « Imprimer / PDF » |
+| Vocabulaire adaptable (élève / étudiant) | ✅ | `app/js/labels.js`, un seul réglage |
 | Bonus : groupes / classes | ❌ | Non réalisé |
 | Déploiement HTTPS et test sur un autre appareil | ⏳ | Voir [rapport-deploiement.md](rapport-deploiement.md) |
 

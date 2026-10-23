@@ -1,18 +1,18 @@
 # Prompt d'exécution — Projet 07 « Gestion des notes des étudiants »
 
-> Produit avec le skill `reprompt` à partir du cahier des charges « 10 cahiers des charges — parcours développeur junior » (édition du 23/10/2026, pages 14-15). Mode : FEATURE + ARCHITECTURE (création).
+> Produit avec le skill `reprompt` à partir du [cahier des charges](cahier-des-charges.md). Mode : FEATURE + ARCHITECTURE (création).
 
 # RÔLE
 Développeur front-end + Supabase. Tu livres une application pédagogique complète, testée et déployable gratuitement.
 
 # CONTEXTE
-Projet 7 d'un parcours de 10 projets (étudiant de 1re année). Premières données persistantes. Démonstration personnelle, sans usage commercial. Aucun nom réel d'étudiant : uniquement des données fictives.
+Application de notes pour enseignants et formateurs (collège, lycée, supérieur, formation). Premières données persistantes. Démonstration personnelle, sans usage commercial. Aucun nom réel d'apprenant : uniquement des données fictives.
 
 # OBJECTIF
 Permettre à un enseignant fictif d'enregistrer des étudiants, des matières et des notes, puis de calculer des moyennes pondérées fiables. Chaque enseignant n'accède qu'à ses propres données.
 
 # SOURCE DE VÉRITÉ
-Le cahier des charges (projet 07). Barème : fonctionnalités 8, fiabilité/validation/tests 4, qualité du code 3, responsive/ergonomie 2, README/GitHub/déploiement 3. Passage : ≥ 14/20, exigences critiques vérifiées, démo ouvrable sur un autre appareil. Un bonus ne compense pas une faille de sécurité.
+Le [cahier des charges](cahier-des-charges.md). Barème : fonctionnalités 8, fiabilité/validation/tests 4, qualité du code 3, responsive/ergonomie 2, README/GitHub/déploiement 3. Passage : ≥ 14/20, exigences critiques vérifiées, démo ouvrable sur un autre appareil. Un bonus ne compense pas une faille de sécurité.
 
 # SKILLS À UTILISER
 - `kev` (dérivé de `kimi`, qui sert de référence) — conduite d'ensemble, porte de livraison, registre des leçons (L17 secrets, L24 erreurs lisibles, L29 doubles soumissions, L35 pas de valeur par défaut inventée, L44 thèmes clair/sombre, L46 tests réels).
