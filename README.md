@@ -1,6 +1,6 @@
 # Carnet — gestion des notes des étudiants
 
-Projet 07 du parcours développeur junior. Un enseignant ou un formateur (collège, lycée, supérieur, centre de formation) enregistre ses élèves ou étudiants, ses matières et leurs notes, puis consulte des moyennes pondérées fiables. Chaque enseignant n'accède qu'à ses propres données grâce à Supabase Auth et au Row Level Security (RLS).
+Projet web de gestion d'élève ou étudiants. Un enseignant ou un formateur (collège, lycée, supérieur, centre de formation) enregistre ses élèves ou étudiants, ses matières et leurs notes, puis consulte des moyennes pondérées fiables. Chaque enseignant n'accède qu'à ses propres données grâce à Supabase Auth et au Row Level Security (RLS).
 
 > Démonstration pédagogique : données fictives uniquement, aucun usage commercial.
 
