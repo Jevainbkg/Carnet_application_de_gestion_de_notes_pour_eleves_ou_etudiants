@@ -1,4 +1,4 @@
-# Carnet de notes — gestion des notes des étudiants
+# Carnet — gestion des notes des étudiants
 
 Projet 07 du parcours développeur junior. Un enseignant (fictif) enregistre ses étudiants, ses matières et leurs notes, puis consulte des moyennes pondérées fiables. Chaque enseignant n'accède qu'à ses propres données grâce à Supabase Auth et au Row Level Security (RLS).
 

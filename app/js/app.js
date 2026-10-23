@@ -18,7 +18,7 @@ const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "
 
 function render(html, title) {
   view.innerHTML = html;
-  document.title = `${title} — Carnet de notes`;
+  document.title = `${title} — Carnet`;
 }
 
 function loading(label = "Chargement…") {
